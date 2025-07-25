@@ -1,5 +1,3 @@
-from tkinter.constants import CASCADE
-
 from django.db import models
 from django.utils.text import slugify
 
@@ -30,7 +28,7 @@ class Size(models.Model):
 
 class ProductSize(models.Model):
     product = models.ForeignKey('Product', on_delete=models.CASCADE, related_name='product_size')
-    size = models.ForeignKey(Size, on_delete=CASCADE)
+    size = models.ForeignKey(Size, on_delete=models.CASCADE)
     stock = models.PositiveIntegerField(default=0)
 
 
@@ -64,6 +62,6 @@ class Product(models.Model):
 
 
 class ProductImage(models.Model):
-    product = models.ForeignKey(Product, on_delete=CASCADE, related_name='images')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='images')
     image = models.ImageField(upload_to='products/extra/')
 
