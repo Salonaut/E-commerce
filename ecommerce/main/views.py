@@ -1,5 +1,3 @@
-from itertools import product
-
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponse
 from django.views.generic import TemplateView, DetailView
@@ -16,12 +14,12 @@ class IndexView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['category'] = Category.objects.all()
+        context['categories'] = Category.objects.all()
         context['current_category'] = None
         return context
 
     def get(self, request, *args, **kwargs):
-        context = super().get_context_data(**kwargs)
+        context = self.get_context_data(**kwargs)
         if request.headers.get('HX-Request'):
             return TemplateResponse(request, 'main/home_content.html', context)
         return TemplateResponse(request, self.template_name, context)
@@ -35,9 +33,9 @@ class CatalogView(TemplateView):
 
     FILTER_MAPPING = {
         'color': lambda queryset, value: queryset.filter(color__iexact=value),
-        'min_price': lambda queryset, value: queryset.filter(min_price__gte=value),
-        'max_price': lambda queryset, value: queryset.filter(max_price__lte=value),
-        'size': lambda queryset, value: queryset.filter(product_size__size__name=value)
+        'min_price': lambda queryset, value: queryset.filter(price__gte=value),
+        'max_price': lambda queryset, value: queryset.filter(price__lte=value),
+        'size': lambda queryset, value: queryset.filter(product_sizes__size__name=value)
     }
 
 
@@ -89,7 +87,7 @@ class CatalogView(TemplateView):
 
 
     def get(self, request, *args, **kwargs):
-        context = super().get_context_data(**kwargs)
+        context = self.get_context_data(**kwargs)
         if request.headers.get('HX-Request'):
             if context.get('show_search'):
                 return TemplateResponse(request, 'main/search_input.html', context)
@@ -120,8 +118,8 @@ class ProductDetailView(DetailView):
 
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
-        context = super().get_context_data(**kwargs)
-        if request.headers.get('HX-Requset'):
+        context = self.get_context_data(**kwargs)
+        if request.headers.get('HX-Request'):
             return TemplateResponse(request, 'main/product_detail.html', context)
         return TemplateResponse(request, self.template_name, context)
 
