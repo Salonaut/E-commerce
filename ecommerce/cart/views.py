@@ -40,7 +40,7 @@ class CartModalView(CartMixin, View):
             ).order_by('-created_at')
         }
 
-        return TemplateResponse(request, 'cart/cart_model.html', context)
+        return TemplateResponse(request, 'cart/cart_modal.html', context)
 
 # Транзакція — це набір операцій (наприклад, створення, оновлення чи видалення записів),
 # які виконуються як єдине ціле. Якщо хоча б одна операція завершується невдало,
@@ -107,4 +107,115 @@ class AddToCartView(CartMixin, View):
                 'message': f'Product {product.name} add to cart.',
                 'cart_item_id': cart_item.id
             })
+
+
+
+
+class UpdateCartItemView(CartMixin, View):
+    @transaction.atomic
+    def post(self, request, item_id):
+        cart = self.get_cart(request)
+        cart_item =  get_object_or_404(CartItem, id=item_id, cart=cart)
+
+        quantity = int(request.POST.get('quantity', 1))
+
+        if quantity < 0:
+            return JsonResponse({
+                'error': 'Invalid quantity'
+            }, status=400)
+
+        if quantity == 0:
+            cart_item.delete()
+        else:
+            if quantity > cart_item.product_sizes.stock:
+                return  JsonResponse({
+                    'error': f'Only {cart_item.product_sizes.stock} available'
+                }, status=400)
+
+        cart_item.quantity = quantity
+        cart_item.save()
+
+        request.session['cart_id'] = cart.id
+        request.session.modified = True
+
+        context = {
+            'cart': cart,
+            'cart_item': cart.items.select_related(
+                'product',
+                'product_size__size',
+            ).order_by('-created_at')
+        }
+
+        return TemplateResponse(request, 'cart/cart_modal.html', context)
+
+
+
+
+class RemoveCartItemView(CartMixin, View):
+    def post(self, request, item_id):
+        cart = self.get_cart(request)
+
+
+        try:
+            cart_item = cart.items.get(id=item_id)
+            cart_item.delete()
+
+            request.session['cart_id'] = cart.id
+            request.session.modified = True
+
+            context = {
+                'cart': cart,
+                'cart_items': cart.items.select_related(
+                    'product',
+                    'product_size__size',
+                ).order_by('-added_at')
+            }
+
+            return TemplateResponse(request, 'cart/cart_modal.html', context)
+
+        except CartItem.DoesNotExist:
+            return JsonResponse({'error': 'Not found'}, status=400)
+
+
+class CartCountView(CartMixin, View):
+    def get(self, request):
+        cart = self.get_cart(request)
+        return JsonResponse({
+            'total_items': cart.total_items,
+            'subtotal': cart.subtotal
+        })
+
+
+
+class ClearCartView(CartMixin, View):
+    def post(self, request):
+        cart = self.get_cart(request)
+        cart.clear()
+
+        request.session['cart_id'] = cart.id
+        request.session.modified = True
+
+        if request.headers.get('HX-Request'):
+            return TemplateResponse(request, 'cart/cart_empty.html', {
+                'cart': cart
+            })
+
+        return JsonResponse({
+            'succes': True,
+            'message': 'Cart cleared'
+        })
+
+
+class CartSummaryView(CartMixin, View):
+    def get(self, request):
+        cart = self.get_cart(request)
+        context = {
+            'cart': cart,
+            'cart_items': cart.items.select_related(
+                'product',
+                'product_size__size'
+            ).order_by('-added_at')
+        }
+        return TemplateResponse(request, 'cart/cart_summary.html', context)
+
 
