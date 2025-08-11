@@ -34,7 +34,7 @@ class CartModalView(CartMixin, View):
         cart = self.get_cart(request)
         context = {
             'cart': cart,
-            'cart_item': cart.items.select_related(
+            'cart_items': cart.items.select_related(
                 'product',
                 'product_size__size'
             ).order_by('-created_at')
@@ -109,43 +109,38 @@ class AddToCartView(CartMixin, View):
             })
 
 
-
-
 class UpdateCartItemView(CartMixin, View):
     @transaction.atomic
     def post(self, request, item_id):
         cart = self.get_cart(request)
-        cart_item =  get_object_or_404(CartItem, id=item_id, cart=cart)
+        cart_item = get_object_or_404(CartItem, id=item_id, cart=cart)
 
         quantity = int(request.POST.get('quantity', 1))
 
         if quantity < 0:
-            return JsonResponse({
-                'error': 'Invalid quantity'
-            }, status=400)
+            return JsonResponse({'error': 'Invalid quantity'}, status=400)
 
         if quantity == 0:
             cart_item.delete()
         else:
-            if quantity > cart_item.product_sizes.stock:
-                return  JsonResponse({
-                    'error': f'Only {cart_item.product_sizes.stock} available'
+            if quantity > cart_item.product_size.stock:
+                return JsonResponse({
+                    'error': f'Only {cart_item.product_size.stock} items available'
                 }, status=400)
 
-        cart_item.quantity = quantity
-        cart_item.save()
+            cart_item.quantity = quantity
+            cart_item.save()
 
         request.session['cart_id'] = cart.id
         request.session.modified = True
 
         context = {
             'cart': cart,
-            'cart_item': cart.items.select_related(
+            'cart_items': cart.items.select_related(
                 'product',
                 'product_size__size',
             ).order_by('-created_at')
         }
-
         return TemplateResponse(request, 'cart/cart_modal.html', context)
 
 
@@ -168,7 +163,7 @@ class RemoveCartItemView(CartMixin, View):
                 'cart_items': cart.items.select_related(
                     'product',
                     'product_size__size',
-                ).order_by('-added_at')
+                ).order_by('-created_at')
             }
 
             return TemplateResponse(request, 'cart/cart_modal.html', context)
