@@ -20,7 +20,7 @@ stripe_endpoint_secret = settings.STRIPE_WEBHOOK_SECRET
 
 
 def create_stripe_checkout_session(order, request):
-    cart = CartMixin.get_cart(request)
+    cart = CartMixin().get_cart(request)
     line_items = []
     for item in cart.items.select_related('product', 'product_size'):
         line_items.append({
@@ -29,7 +29,7 @@ def create_stripe_checkout_session(order, request):
                 'product_data': {
                     'name': f'{item.product.name} - {item.product_size.size.name}',
                 },
-                'unit_amount': int(item.product.size * 100),
+                'unit_amount': int(item.product.price * 100),
             },
             'quantity': item.quantity
         })
@@ -68,7 +68,7 @@ def stripe_webhook(request):
 
     try:
         event = stripe.Webhook.construct_event(
-            payload, sig_header, STRIPE_WEBHOOK_SECRET
+            payload, sig_header, stripe_endpoint_secret
         )
     except ValueError as e:
         return HttpResponse(status=400)
