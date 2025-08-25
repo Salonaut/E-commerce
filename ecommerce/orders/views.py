@@ -116,14 +116,14 @@ class CheckoutView(CartMixin, View):
                         logger.info(f"HX-Redirect to Stripe: {checkout_session.url}")
                         return response
                     return redirect(checkout_session.url)
-                elif payment_provider == 'heleket':
-                    payment = create_heleket_payment(order, request)
-                    cart.clear()
-                    if request.headers.get('HX-Request'):
-                        response = HttpResponse(status=200)
-                        response['HX-Redirect'] = payment['url']
-                        return response
-                    return redirect(payment['url'])
+                # elif payment_provider == 'heleket':
+                #     payment = create_heleket_payment(order, request)
+                #     cart.clear()
+                #     if request.headers.get('HX-Request'):
+                #         response = HttpResponse(status=200)
+                #         response['HX-Redirect'] = payment['url']
+                #         return response
+                #     return redirect(payment['url'])
             except Exception as e:
                 logger.error(f"Error creating payment: {str(e)}", exc_info=True)
                 order.delete()
